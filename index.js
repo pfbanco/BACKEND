@@ -1,69 +1,130 @@
-class ProductManager {
-    constructor() {
-      this.products = [];
+const fs = require("fs");
+
+//Ejemplo de contructor de producto.
+class Product {
+  constructor(title, description, price, thumbnail, code, stock) {
+    if (!title || !description || !price || !thumbnail || !code || !stock) {
+      console.log("Error: Every fild in required");
+      return;
     }
-  
-    addProduct(product) {
-      const id =
-        this.products.length === 0
-          ? 1
-          : this.products[this.products.length - 1].id + 1;
-  
-      if (
-        !product.title ||
-        !product.description ||
-        !product.price ||
-        !product.thumbnail ||
-        !product.code ||
-        !product.stock
-      ) {
-        console.log("Error: Every fild in required");
-        return;
-      }
-      if (this.products.some((p) => p.code === product.code)) {
-        console.log("Error: The product code already exists");
-        return;
-      }
-  
-      const newProduct = {
-        id,
-        ...product
-      };
-      this.products.push(newProduct);
-    }
-  
-    getProducts() {
-      return this.products;
-    }
-  
-    getProductById(id) {
-      const product = this.products.find((prod) => prod.id === id);
-      //product ? product : console.log("Error: Product not found");}
-       if (product) {
-        return product;
-      } else {
-        console.log("Error: Product not found");
-      }
-    }
+    this.title = title;
+    this.description = description;
+    this.price = price;
+    this.thumbnail = thumbnail;
+    this.code = code;
+    this.stock = stock;
   }
-  
-  const productoNuevo1 = new ProductManager();
-  console.log(productoNuevo1)
-  //Muestro el array vacio.
-  
-  productoNuevo1.addProduct({ title: 'producto prueba', description: 'Este es un producto prueba', price: 200, thumbnail: 'Sin imagen', code: 'abc123', stock: 25});
-  productoNuevo1.addProduct({ title: 'producto prueba', description: 'Este es un producto prueba', price: 200, thumbnail: 'Sin imagen', code: 'abc123', stock: 25});
-  //Cargo con el mismo codigo para comprobar mensaje de error.
-  productoNuevo1.addProduct({ description: 'Este es un producto prueba', price: 200, thumbnail: 'Sin imagen', code: 'abc123', stock: 25});
-  //Cargo sin un elemento para comprobar mensaje de error.
-  
-  productoNuevo1.addProduct({ title: 'producto prueba', description: 'Este es un producto prueba', price: 200, thumbnail: 'Sin imagen', code: 'abc321', stock: 25});
-  productoNuevo1.addProduct({ title: 'producto prueba', description: 'Elemento para traer con getProductById', price: 200, thumbnail: 'Sin imagen', code: 'abc000', stock: 25});
-  console.log(productoNuevo1.getProducts());
-  //Cargo un nuevo producto y traigo todos.
-  
-  console.log(productoNuevo1.getProductById(4));
-  //Llamo un id inexistente para comprobar mensaje de error.
-  
-  console.log(productoNuevo1.getProductById(3));
-  //Traigo un elemento con getProductByID.
+}
+
+class ProductManager {
+  constructor(path) {
+    this.path = path;
+  }
+
+  addProduct = async (product) => {
+    if(Object.keys(product).length === 0){
+      console.log("Error: Product empty")
+      return
+    }
+    const products = await this.getProducts();
+    if (products.length > 0 && products.some((p) => p.code === product.code)) {
+      console.log("Error: The product code already exists");
+      return;
+    }
+    const id = this.#generarId(products);
+    const newProduct = { id, ...product };
+    products.push(newProduct);
+    await fs.promises.writeFile(this.path, JSON.stringify(products));
+    //return product;
+  };
+
+  getProducts = async () => {
+    if (fs.existsSync(this.path)) {
+      const infoProducts = await fs.promises.readFile(this.path, "utf-8");
+      const products = JSON.parse(infoProducts);
+      return products;
+    } else {
+      console.log("File not exist");
+      return [];
+    }
+  };
+
+  getProductById = async (id) => {
+    const products = await this.getProducts();
+    const product = products.find((p) => p.id === id);
+    if (product) {
+      return product;
+    } else {
+      return "Product not found";
+    }
+  };
+
+  deleteProducts = async () => {
+    if (fs.existsSync(this.path)) {
+      await fs.promises.unlink(this.path);
+      return "Deleted products";
+    } else {
+      return "File not exist";
+    }
+  };
+
+  deleteProductsById = async (id) => {
+    const products = await this.getProducts();
+    const newArray = products.filter((p) => p.id !== id);
+    await fs.promises.writeFile(this.path, JSON.stringify(newArray));
+  };
+
+  updateProduct = async (id, obj) => {
+    const products = await this.getProducts();
+    const indexProduct = products.findIndex((p) => p.id === id);
+    if (indexProduct === -1) {
+      return "Product not found";
+    }
+    const newProduct = { ...products[indexProduct], ...obj };
+    newProduct.id = id
+    products.splice(indexProduct, 1, newProduct);
+    await fs.promises.writeFile(this.path, JSON.stringify(products));
+  };
+
+  #generarId = (products) => {
+    let id;
+    if (products.length === 0) {
+      id = 1;
+    } else {
+      id = products[products.length - 1].id + 1;
+    }
+    return id;
+  };
+}
+
+//PRODUCTO COMPLETO
+const product1 = new Product("Producto1", "Descripcion de producto", "$2000", "No contiene", "ABC123", 30);
+//PRODUCTO INCOMPLETO
+const product2 = new Product("Producto2", "$3000", "No contiene", "ABC321", 30);
+//PRODUCTO CON MISMO CODIGO
+const product3 = new Product("Producto3", "Descripcion de producto", "$25000", "No contiene", "ABC123", 30);
+
+async function prueba() {
+  const manager = new ProductManager("Usuarios.json");
+  //AGREGAR PRODUCTOS
+  //await manager.addProduct(product1);
+  //await manager.addProduct(product2);
+  //await manager.addProduct(product3);
+
+  //BUSCAR POR ID
+  //await manager.getProductById(2)
+
+  //BORRAR POR ID
+  //await manager.deleteProductsById(1)
+
+  //BORRAR TODO EL DOCUMENTO
+  //await manager.deleteProducts()
+
+  //MODIFICAR EL DOCUMENTO
+  await manager.updateProduct(3,{title: 'Nuevo producto'})
+
+  //TRAER TODOS LOS PRODUCTOS
+  console.log(await manager.getProducts());
+}
+
+prueba();
