@@ -21,18 +21,14 @@ class ProductManager {
     this.path = path;
   }
 
-  addProduct = async (product) => {
-    if(Object.keys(product).length === 0){
-      console.log("Error: Product empty")
-      return
-    }
+  addProduct = async (title, description, price, thumbnail, code, stock) => {
     const products = await this.getProducts();
-    if (products.length > 0 && products.some((p) => p.code === product.code)) {
+    if (products.length > 0 && products.some((p) => p.code === code)) {
       console.log("Error: The product code already exists");
       return;
     }
     const id = this.#generarId(products);
-    const newProduct = { id, ...product };
+    const newProduct = { id, title, description, price, thumbnail, code, stock};
     products.push(newProduct);
     await fs.promises.writeFile(this.path, JSON.stringify(products));
     //return product;
@@ -102,13 +98,13 @@ const product1 = new Product("Producto1", "Descripcion de producto", "$2000", "N
 //PRODUCTO INCOMPLETO
 const product2 = new Product("Producto2", "$3000", "No contiene", "ABC321", 30);
 //PRODUCTO CON MISMO CODIGO
-const product3 = new Product("Producto3", "Descripcion de producto", "$25000", "No contiene", "ABC123", 30);
+//const product3 = new Product("Producto3", "Descripcion de producto", "$25000", "No contiene", "ABC123", 30);
 
 async function prueba() {
-  const manager = new ProductManager("Usuarios.json");
+  const manager = new ProductManager("Products.json");
   //AGREGAR PRODUCTOS
-  //await manager.addProduct(product1);
-  //await manager.addProduct(product2);
+  await manager.addProduct(product1);
+  await manager.addProduct(product2);
   //await manager.addProduct(product3);
 
   //BUSCAR POR ID
@@ -121,7 +117,7 @@ async function prueba() {
   //await manager.deleteProducts()
 
   //MODIFICAR EL DOCUMENTO
-  await manager.updateProduct(3,{title: 'Nuevo producto'})
+  //await manager.updateProduct(3,{title: 'Nuevo producto'})
 
   //TRAER TODOS LOS PRODUCTOS
   console.log(await manager.getProducts());
